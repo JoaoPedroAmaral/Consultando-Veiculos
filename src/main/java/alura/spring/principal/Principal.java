@@ -1,20 +1,11 @@
 package alura.spring.principal;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
-import alura.spring.model.DadosEposidio;
-import alura.spring.model.DadosTipo;
-import alura.spring.model.DadosTemporada;
-import alura.spring.model.Episodio;
+import alura.spring.model.Dados;
+import alura.spring.model.Dadosveiculo;
+import alura.spring.model.DadosModelos;
 import alura.spring.service.ConsumoApi;
 import alura.spring.service.ConverteDados;
 
@@ -27,10 +18,10 @@ public class Principal {
     private final String ENDERECO = "https://parallelum.com.br/fipe/api/v1/";
 
     public void exibeMenu(){        
-        String opcao, json;
+        String opcao, json, novoEndereco;
         do{
                 System.out.println("""
-                Escolha o tipo de veiculo que deseja buscar:
+                Escolha a marca de veiculo que deseja buscar:
                 Carros
                 Motos
                 Caminhões
@@ -40,14 +31,60 @@ public class Principal {
             
             if(opcao.contains("carr")){
                 json = consumo.obterDados(ENDERECO + "carros/marcas");
+                novoEndereco = ENDERECO + "carros/marcas";
             }else if(opcao.contains("mot")){
                 json = consumo.obterDados(ENDERECO + "motos/marcas");
+                novoEndereco = ENDERECO + "motos/marcas";
             }else{
                 json = consumo.obterDados(ENDERECO + "caminhoes/marcas");
+                novoEndereco = ENDERECO + "caminhoes/marcas";
             }
 
-            var marcas = conversor.obterLista(json, DadosTipo.class);
-            marcas.stream().sorted(Comparator.comparing(DadosTipo::codigo)).forEach(System.out::println);
+            var marcasList = conversor.obterLista(json, Dados.class);
+            marcasList.stream().sorted(Comparator.comparing(Dados::codigo).reversed()).forEach(System.out::println);
+
+
+
+            System.out.println("\nDigite a marca do produto desejado");
+
+            var escolhaMarca = entrada.next().toLowerCase();
+
+            var marcaCodigo = marcasList.stream().filter(m -> m.getNome().toLowerCase().contains(escolhaMarca)).findFirst();
+
+            json = consumo.obterDados(novoEndereco + "/" + marcaCodigo.get().getCodigo() + "/modelos");
+
+            novoEndereco = novoEndereco + "/" + marcaCodigo.get().getCodigo() + "/modelos";
+
+            var modeloList = conversor.obterDados(json, DadosModelos.class);
+            System.out.println(modeloList);
+            
+
+
+
+            System.out.println("\nDigite o modelo desejado");
+            var escolhaModelo = entrada.next().toLowerCase();
+
+            var modeloCodigo = modeloList.modelos().stream()
+            .filter(mo -> mo.getNome().toLowerCase().contains(escolhaModelo)).findFirst();
+
+            json = consumo.obterDados(novoEndereco + "/" + modeloCodigo.get().getCodigo() + "/anos");
+            novoEndereco = novoEndereco + "/" + modeloCodigo.get().getCodigo() + "/anos";
+
+            var anoList = conversor.obterLista(json, Dados.class);
+            anoList.stream().sorted(Comparator.comparing(Dados::codigo).reversed()).forEach(System.out::println);
+
+
+
+            System.out.println("Escolha o ano da " + escolhaModelo.toUpperCase());
+            var escolhaAno = entrada.next().toLowerCase();
+
+            var anoCodigo = anoList.stream().filter(a -> a.getNome().toLowerCase().contains(escolhaAno)).findFirst();
+
+            json = consumo.obterDados(novoEndereco + "/" + anoCodigo.get().getCodigo());
+
+            var carroStatus = conversor.obterDados(json, Dadosveiculo.class);
+            
+            System.out.println(carroStatus);
 
             
 
